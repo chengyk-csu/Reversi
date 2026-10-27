@@ -1,0 +1,2 @@
+depth,games,fixed_wins,dynamic_wins,draws,fixed_win_rate,dynamic_win_rate,draw_rate,fixed_avg_score,dynamic_avg_score,dynamic_avg_score_diff,fixed_avg_time,dynamic_avg_time,fixed_avg_nodes,dynamic_avg_nodes
+4,10,10,0,0,1.0,0.0,0.0,37.0,27.0,-10.0,6.551610050012823,7.360412290001113,41407.0,45528.5

@@ -1,0 +1,4 @@
+algorithm_a,algorithm_b,games,a_wins,b_wins,draws,a_win_rate,b_win_rate,draw_rate,a_avg_score,b_avg_score,a_avg_score_diff,a_avg_time,b_avg_time,a_avg_nodes,b_avg_nodes
+Minimax,Alpha-Beta,10,5,5,0,0.5,0.5,0.0,32.0,32.0,0.0,3.8107673300168243,1.2566759700028343,22453.5,7742.5
+Minimax,MCTS,10,3,5,2,0.3,0.5,0.2,33.4,30.6,2.8,6.129154039986315,31.392970889988646,33263.9,13469.8
+Alpha-Beta,MCTS,10,4,6,0,0.4,0.6,0.0,30.9,33.0,-2.1,1.7091097000055016,28.09811316001724,10528.8,13692.4
