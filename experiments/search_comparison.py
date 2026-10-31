@@ -1,3 +1,4 @@
+
 import csv
 from pathlib import Path
 
@@ -9,57 +10,25 @@ from utils.coordinates import position_to_notation
 
 
 def run_comparison():
-
     board = Board()
-
-    depths = [
-        2,
-        3,
-        4,
-        5,
-    ]
-
+    depths = [2, 3, 4, 5]
     results = []
 
     print("=" * 75)
-
     print(
-        f"{'Algorithm':<15}"
-        f"{'Depth':<10}"
-        f"{'Move':<10}"
-        f"{'Nodes':<15}"
-        f"{'Time(s)':<15}"
+        f"{'Algorithm':<15}{'Depth':<10}{'Move':<10}"
+        f"{'Nodes':<15}{'Time(s)':<15}"
     )
-
     print("=" * 75)
 
     for depth in depths:
-
-        # =========================
-        # Minimax
-        # =========================
-
-        minimax = MinimaxAI(
-            depth=depth
-        )
-
-        move = minimax.choose_move(
-            board,
-            BLACK
-        )
-
-        move_name = (
-            position_to_notation(*move)
-            if move is not None
-            else "None"
-        )
+        minimax = MinimaxAI(depth=depth)
+        move = minimax.choose_move(board, BLACK)
+        move_name = position_to_notation(*move) if move is not None else "None"
 
         print(
-            f"{'Minimax':<15}"
-            f"{depth:<10}"
-            f"{move_name:<10}"
-            f"{minimax.nodes_searched:<15}"
-            f"{minimax.move_time:<15.6f}"
+            f"{'Minimax':<15}{depth:<10}{move_name:<10}"
+            f"{minimax.nodes_searched:<15}{minimax.move_time:<15.6f}"
         )
 
         results.append({
@@ -70,31 +39,13 @@ def run_comparison():
             "time": minimax.move_time,
         })
 
-        # =========================
-        # Alpha-Beta
-        # =========================
-
-        alphabeta = AlphaBetaAI(
-            depth=depth
-        )
-
-        move = alphabeta.choose_move(
-            board,
-            BLACK
-        )
-
-        move_name = (
-            position_to_notation(*move)
-            if move is not None
-            else "None"
-        )
+        alphabeta = AlphaBetaAI(depth=depth)
+        move = alphabeta.choose_move(board, BLACK)
+        move_name = position_to_notation(*move) if move is not None else "None"
 
         print(
-            f"{'Alpha-Beta':<15}"
-            f"{depth:<10}"
-            f"{move_name:<10}"
-            f"{alphabeta.nodes_searched:<15}"
-            f"{alphabeta.move_time:<15.6f}"
+            f"{'Alpha-Beta':<15}{depth:<10}{move_name:<10}"
+            f"{alphabeta.nodes_searched:<15}{alphabeta.move_time:<15.6f}"
         )
 
         results.append({
@@ -107,43 +58,17 @@ def run_comparison():
 
         print("-" * 75)
 
-    # =========================
-    # 保存实验数据
-    # =========================
+    output_file = Path(__file__).parent / "search_comparison.csv"
 
-    output_file = (
-            Path(__file__).parent
-            / "search_comparison.csv"
-    )
-
-    with open(
-            output_file,
-            "w",
-            newline="",
-            encoding="utf-8",
-    ) as file:
+    with open(output_file, "w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(
-            file,
-            fieldnames=[
-                "algorithm",
-                "depth",
-                "move",
-                "nodes",
-                "time",
-            ],
+            file, fieldnames=["algorithm", "depth", "move", "nodes", "time"]
         )
-
         writer.writeheader()
-
-        writer.writerows(
-            results
-        )
+        writer.writerows(results)
 
     print()
-    print(
-        "实验结果已保存到：",
-        output_file
-    )
+    print("实验结果已保存到：", output_file)
 
 
 if __name__ == "__main__":

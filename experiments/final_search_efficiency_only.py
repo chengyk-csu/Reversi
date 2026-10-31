@@ -1,464 +1,144 @@
+
 import csv
 from pathlib import Path
 
 from config import BLACK
 from core.board import Board
-
 from ai.minimax import MinimaxAI
 from ai.alphabeta import AlphaBetaAI
 from ai.evaluation import evaluate_fixed
-
 from utils.coordinates import position_to_notation
 
 
-# ============================================================
-# 输出路径
-# ============================================================
-
 OUTPUT_DIR = Path(__file__).parent
+OUTPUT_CSV = OUTPUT_DIR / "final_search_efficiency.csv"
 
-OUTPUT_CSV = (
-    OUTPUT_DIR
-    / "final_search_efficiency.csv"
-)
-
-
-# ============================================================
-# 正式实验参数
-# ============================================================
-
-SEARCH_DEPTHS = [
-    2,
-    3,
-    4,
-    5,
-]
-
+SEARCH_DEPTHS = [2, 3, 4, 5]
 SEARCH_REPEATS = 3
 
 
-# ============================================================
-# 单个算法、单个深度测试
-# ============================================================
-
-def benchmark_algorithm(
-    ai_class,
-    depth,
-):
-    """
-    在完全相同的初始局面上重复搜索。
-
-    返回：
-        最终动作
-        平均搜索节点数
-        平均搜索时间
-    """
-
+def benchmark_algorithm(ai_class, depth):
+    """在相同初始局面下重复搜索，统计平均节点数和时间。"""
     board = Board()
-
     selected_move = None
-
     node_results = []
-
     time_results = []
 
-    for repeat in range(
-        SEARCH_REPEATS
-    ):
-
-        ai = ai_class(
-            depth=depth,
-            evaluator=evaluate_fixed,
-        )
-
-        move = ai.choose_move(
-            board,
-            BLACK,
-        )
+    for repeat in range(SEARCH_REPEATS):
+        ai = ai_class(depth=depth, evaluator=evaluate_fixed)
+        move = ai.choose_move(board, BLACK)
 
         if selected_move is None:
-
             selected_move = move
-
         elif move != selected_move:
+            raise RuntimeError("相同算法在相同棋盘和深度下产生了不同的确定性搜索结果。")
 
-            raise RuntimeError(
-                "相同算法在相同棋盘和深度下"
-                "产生了不同的确定性搜索结果。"
-            )
-
-        node_results.append(
-            ai.nodes_searched
-        )
-
-        time_results.append(
-            ai.move_time
-        )
+        node_results.append(ai.nodes_searched)
+        time_results.append(ai.move_time)
 
         print(
-            f"    Repeat "
-            f"{repeat + 1}/{SEARCH_REPEATS} | "
-            f"nodes={ai.nodes_searched} | "
-            f"time={ai.move_time:.6f}s"
+            f"    Repeat {repeat + 1}/{SEARCH_REPEATS} | "
+            f"nodes={ai.nodes_searched} | time={ai.move_time:.6f}s"
         )
 
-    average_nodes = (
-        sum(node_results)
-        / len(node_results)
-    )
+    average_nodes = sum(node_results) / len(node_results)
+    average_time = sum(time_results) / len(time_results)
 
-    average_time = (
-        sum(time_results)
-        / len(time_results)
-    )
+    return selected_move, average_nodes, average_time
 
-    return (
-        selected_move,
-        average_nodes,
-        average_time,
-    )
-
-
-# ============================================================
-# 全部深度测试
-# ============================================================
 
 def run_experiment():
-
     records = []
 
-    print(
-        "=" * 100
-    )
-
-    print(
-        "FINAL MINIMAX VS ALPHA-BETA "
-        "SEARCH EFFICIENCY EXPERIMENT"
-    )
-
-    print(
-        "=" * 100
-    )
-
+    print("=" * 100)
+    print("FINAL MINIMAX VS ALPHA-BETA SEARCH EFFICIENCY EXPERIMENT")
+    print("=" * 100)
     print()
 
     for depth in SEARCH_DEPTHS:
-
-        print(
-            "=" * 70
-        )
-
-        print(
-            f"Depth = {depth}"
-        )
-
-        print(
-            "=" * 70
-        )
-
-        # ====================================================
-        # Minimax
-        # ====================================================
+        print("=" * 70)
+        print(f"Depth = {depth}")
+        print("=" * 70)
 
         print()
-
-        print(
-            "Minimax:"
-        )
-
-        (
-            minimax_move,
-            minimax_nodes,
-            minimax_time,
-        ) = benchmark_algorithm(
-            MinimaxAI,
-            depth,
-        )
-
-        # ====================================================
-        # Alpha-Beta
-        # ====================================================
+        print("Minimax:")
+        minimax_move, minimax_nodes, minimax_time = benchmark_algorithm(MinimaxAI, depth)
 
         print()
+        print("Alpha-Beta:")
+        alphabeta_move, alphabeta_nodes, alphabeta_time = benchmark_algorithm(AlphaBetaAI, depth)
 
-        print(
-            "Alpha-Beta:"
-        )
+        minimax_notation = position_to_notation(*minimax_move) if minimax_move is not None else "PASS"
+        alphabeta_notation = position_to_notation(*alphabeta_move) if alphabeta_move is not None else "PASS"
 
-        (
-            alphabeta_move,
-            alphabeta_nodes,
-            alphabeta_time,
-        ) = benchmark_algorithm(
-            AlphaBetaAI,
-            depth,
-        )
-
-        # ====================================================
-        # 动作
-        # ====================================================
-
-        if minimax_move is None:
-
-            minimax_notation = (
-                "PASS"
-            )
-
-        else:
-
-            minimax_notation = (
-                position_to_notation(
-                    *minimax_move
-                )
-            )
-
-        if alphabeta_move is None:
-
-            alphabeta_notation = (
-                "PASS"
-            )
-
-        else:
-
-            alphabeta_notation = (
-                position_to_notation(
-                    *alphabeta_move
-                )
-            )
-
-        same_move = (
-            minimax_move
-            == alphabeta_move
-        )
-
-        # ====================================================
-        # 节点削减比例
-        # ====================================================
+        same_move = minimax_move == alphabeta_move
 
         if minimax_nodes > 0:
-
-            node_reduction_percent = (
-                (
-                    minimax_nodes
-                    - alphabeta_nodes
-                )
-                / minimax_nodes
-                * 100
-            )
-
+            node_reduction_percent = (minimax_nodes - alphabeta_nodes) / minimax_nodes * 100
         else:
-
-            node_reduction_percent = (
-                0.0
-            )
-
-        # ====================================================
-        # 时间削减比例
-        # ====================================================
+            node_reduction_percent = 0.0
 
         if minimax_time > 0:
-
-            time_reduction_percent = (
-                (
-                    minimax_time
-                    - alphabeta_time
-                )
-                / minimax_time
-                * 100
-            )
-
+            time_reduction_percent = (minimax_time - alphabeta_time) / minimax_time * 100
         else:
-
-            time_reduction_percent = (
-                0.0
-            )
-
-        # ====================================================
-        # 保存结果
-        # ====================================================
+            time_reduction_percent = 0.0
 
         record = {
-
-            "depth": (
-                depth
-            ),
-
-            "minimax_move": (
-                minimax_notation
-            ),
-
-            "alphabeta_move": (
-                alphabeta_notation
-            ),
-
-            "same_move": (
-                same_move
-            ),
-
-            "minimax_nodes": (
-                minimax_nodes
-            ),
-
-            "alphabeta_nodes": (
-                alphabeta_nodes
-            ),
-
-            "node_reduction_percent": (
-                node_reduction_percent
-            ),
-
-            "minimax_avg_time": (
-                minimax_time
-            ),
-
-            "alphabeta_avg_time": (
-                alphabeta_time
-            ),
-
-            "time_reduction_percent": (
-                time_reduction_percent
-            ),
+            "depth": depth,
+            "minimax_move": minimax_notation,
+            "alphabeta_move": alphabeta_notation,
+            "same_move": same_move,
+            "minimax_nodes": minimax_nodes,
+            "alphabeta_nodes": alphabeta_nodes,
+            "node_reduction_percent": node_reduction_percent,
+            "minimax_avg_time": minimax_time,
+            "alphabeta_avg_time": alphabeta_time,
+            "time_reduction_percent": time_reduction_percent,
         }
 
-        records.append(
-            record
-        )
-
-        # ====================================================
-        # 当前深度汇总
-        # ====================================================
+        records.append(record)
 
         print()
-
-        print(
-            f"Move："
-            f"{minimax_notation} / "
-            f"{alphabeta_notation}"
-        )
-
-        print(
-            "Same move：",
-            same_move
-        )
-
-        print(
-            "Minimax nodes：",
-            f"{minimax_nodes:.0f}"
-        )
-
-        print(
-            "Alpha-Beta nodes：",
-            f"{alphabeta_nodes:.0f}"
-        )
-
-        print(
-            "Node reduction：",
-            f"{node_reduction_percent:.2f}%"
-        )
-
-        print(
-            "Minimax time：",
-            f"{minimax_time:.6f}s"
-        )
-
-        print(
-            "Alpha-Beta time：",
-            f"{alphabeta_time:.6f}s"
-        )
-
-        print(
-            "Time reduction：",
-            f"{time_reduction_percent:.2f}%"
-        )
-
+        print(f"Move：{minimax_notation} / {alphabeta_notation}")
+        print("Same move：", same_move)
+        print("Minimax nodes：", f"{minimax_nodes:.0f}")
+        print("Alpha-Beta nodes：", f"{alphabeta_nodes:.0f}")
+        print("Node reduction：", f"{node_reduction_percent:.2f}%")
+        print("Minimax time：", f"{minimax_time:.6f}s")
+        print("Alpha-Beta time：", f"{alphabeta_time:.6f}s")
+        print("Time reduction：", f"{time_reduction_percent:.2f}%")
         print()
 
     return records
 
 
-# ============================================================
-# 保存 CSV
-# ============================================================
-
-def save_results(
-    records,
-):
-
+def save_results(records):
     fieldnames = [
-        "depth",
-
-        "minimax_move",
-        "alphabeta_move",
-        "same_move",
-
-        "minimax_nodes",
-        "alphabeta_nodes",
-        "node_reduction_percent",
-
-        "minimax_avg_time",
-        "alphabeta_avg_time",
-        "time_reduction_percent",
+        "depth", "minimax_move", "alphabeta_move", "same_move",
+        "minimax_nodes", "alphabeta_nodes", "node_reduction_percent",
+        "minimax_avg_time", "alphabeta_avg_time", "time_reduction_percent",
     ]
 
-    with open(
-        OUTPUT_CSV,
-        "w",
-        newline="",
-        encoding="utf-8",
-    ) as file:
-
-        writer = csv.DictWriter(
-            file,
-            fieldnames=fieldnames,
-        )
-
+    with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
-
-        writer.writerows(
-            records
-        )
+        writer.writerows(records)
 
 
-# ============================================================
-# 最终汇总
-# ============================================================
-
-def print_final_summary(
-    records,
-):
-
+def print_final_summary(records):
     print()
+    print("=" * 115)
+    print("FINAL SEARCH EFFICIENCY SUMMARY")
+    print("=" * 115)
 
     print(
-        "=" * 115
+        f"{'Depth':<8}{'Move':<10}{'Same':<8}"
+        f"{'MinimaxNodes':<16}{'ABNodes':<14}{'NodeReduce':<15}"
+        f"{'MinimaxTime':<16}{'ABTime':<16}{'TimeReduce':<14}"
     )
-
-    print(
-        "FINAL SEARCH EFFICIENCY SUMMARY"
-    )
-
-    print(
-        "=" * 115
-    )
-
-    print(
-        f"{'Depth':<8}"
-        f"{'Move':<10}"
-        f"{'Same':<8}"
-        f"{'MinimaxNodes':<16}"
-        f"{'ABNodes':<14}"
-        f"{'NodeReduce':<15}"
-        f"{'MinimaxTime':<16}"
-        f"{'ABTime':<16}"
-        f"{'TimeReduce':<14}"
-    )
-
-    print(
-        "-" * 115
-    )
+    print("-" * 115)
 
     for record in records:
-
         print(
             f"{record['depth']:<8}"
             f"{record['minimax_move']:<10}"
@@ -471,38 +151,17 @@ def print_final_summary(
             f"{record['time_reduction_percent']:<13.2f}%"
         )
 
-    print(
-        "=" * 115
-    )
+    print("=" * 115)
 
-
-# ============================================================
-# 主函数
-# ============================================================
 
 def main():
-
-    records = (
-        run_experiment()
-    )
-
-    save_results(
-        records
-    )
-
-    print_final_summary(
-        records
-    )
+    records = run_experiment()
+    save_results(records)
+    print_final_summary(records)
 
     print()
-
-    print(
-        "结果已保存："
-    )
-
-    print(
-        OUTPUT_CSV
-    )
+    print("结果已保存：")
+    print(OUTPUT_CSV)
 
 
 if __name__ == "__main__":
